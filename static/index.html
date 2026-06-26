@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Extractor API</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --green: #16a34a;
+      --code-bg: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+    .nav-links a { margin-left: 1.5rem; color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    .nav-links a:hover { color: var(--primary); }
+
+    /* HERO */
+    .hero { max-width: 900px; margin: 4rem auto 3rem; text-align: center; padding: 0 1.5rem; }
+    .hero h1 { font-size: 2.6rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    .hero h1 span { color: var(--primary); }
+    .hero p { font-size: 1.15rem; color: var(--muted); max-width: 620px; margin: 0 auto 2rem; }
+    .btn { display: inline-block; padding: 0.75rem 2rem; background: var(--primary); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 0.4rem; transition: background 0.2s; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+
+    /* BADGE */
+    .badge { display: inline-block; background: #dbeafe; color: var(--primary); border-radius: 999px; padding: 0.25rem 0.85rem; font-size: 0.78rem; font-weight: 600; margin-bottom: 1rem; }
+
+    /* SECTION */
+    section { max-width: 1000px; margin: 0 auto 4rem; padding: 0 1.5rem; }
+    h2 { font-size: 1.7rem; font-weight: 700; margin-bottom: 1.25rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+
+    /* FEATURES GRID */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .card-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+    .card p { color: var(--muted); font-size: 0.9rem; }
+
+    /* CODE BLOCKS */
+    .code-block { background: var(--code-bg); color: #e2e8f0; border-radius: 10px; padding: 1.25rem 1.5rem; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.82rem; line-height: 1.7; margin: 0.75rem 0; }
+    .code-block .kw { color: #93c5fd; }
+    .code-block .str { color: #86efac; }
+    .code-block .num { color: #fbbf24; }
+    .code-block .key { color: #f9a8d4; }
+
+    /* PRICING */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+    .price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; }
+    .price-card.featured { border-color: var(--primary); background: #eff6ff; }
+    .price-card .plan { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+    .price-card .price { font-size: 2rem; font-weight: 800; color: var(--text); }
+    .price-card .price span { font-size: 1rem; color: var(--muted); }
+    .price-card .requests { font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0 1rem; }
+    .price-card ul { list-style: none; font-size: 0.85rem; color: var(--muted); text-align: left; }
+    .price-card ul li::before { content: "✓  "; color: var(--green); font-weight: 700; }
+
+    /* ARABIC */
+    .arabic-section { direction: rtl; text-align: right; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; }
+    .arabic-section h2 { font-size: 1.5rem; }
+    .arabic-section p { color: var(--muted); }
+
+    /* FOOTER */
+    footer { background: var(--code-bg); color: #94a3b8; text-align: center; padding: 2rem 1rem; font-size: 0.85rem; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .tab { padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; border: 1px solid var(--border); background: var(--surface); }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">Invoice Extractor API</span>
+  <div class="nav-links">
+    <a href="/docs">Docs</a>
+    <a href="/health">Health</a>
+    <a href="https://rapidapi.com" target="_blank">RapidAPI</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">REST API &bull; PDF &amp; Image &bull; JSON Output</div>
+  <h1>Turn Any Invoice Into<br/><span>Structured JSON</span></h1>
+  <p>Upload a PDF or image invoice and instantly receive clean, structured data — vendor name, invoice number, dates, tax, totals, line items, and more.</p>
+  <a href="/docs" class="btn">Try the API</a>
+  <a href="https://rapidapi.com" target="_blank" class="btn btn-outline">Get API Key on RapidAPI</a>
+</div>
+
+<!-- FEATURES -->
+<section>
+  <h2>Features</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-icon">📄</div>
+      <h3>PDF &amp; Image Support</h3>
+      <p>Accepts PDF, PNG, JPG, and JPEG files. Works with native text PDFs and scanned documents via OCR.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <h3>Intelligent Parsing</h3>
+      <p>Extracts invoice number, dates, vendor, tax number, subtotal, tax, total, currency, payment method, and line items.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h3>Bilingual: EN &amp; AR</h3>
+      <p>Regex patterns support both English and Arabic invoice layouts including VAT, ضريبة القيمة المضافة, and more.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Fast &amp; Lightweight</h3>
+      <p>No heavy AI model required for basic extraction. Sub-second response for most text-based invoices.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h3>Secure</h3>
+      <p>API key authentication. Files are never stored permanently. Works with RapidAPI proxy headers.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📊</div>
+      <h3>Confidence Score</h3>
+      <p>Every response includes a confidence score (0–100) so you know how reliable the extraction is.</p>
+    </div>
+  </div>
+</section>
+
+<!-- EXAMPLE REQUEST -->
+<section>
+  <h2>Example Request</h2>
+  <div class="tabs">
+    <div class="tab active">cURL</div>
+    <div class="tab">Python</div>
+  </div>
+  <pre class="code-block">curl -X POST https://your-api.com/v1/invoices/extract \
+  -H <span class="str">"X-API-Key: your-api-key"</span> \
+  -F <span class="str">"file=@invoice.pdf"</span></pre>
+
+  <h2 style="margin-top:2rem">Example Response</h2>
+  <pre class="code-block">{
+  <span class="key">"success"</span>: <span class="kw">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"vendor_name"</span>:       <span class="str">"Acme Corp Ltd"</span>,
+    <span class="key">"vendor_tax_number"</span>:  <span class="str">"300012345600003"</span>,
+    <span class="key">"invoice_number"</span>:     <span class="str">"INV-2024-00142"</span>,
+    <span class="key">"invoice_date"</span>:       <span class="str">"15/01/2024"</span>,
+    <span class="key">"due_date"</span>:           <span class="str">"14/02/2024"</span>,
+    <span class="key">"currency"</span>:           <span class="str">"SAR"</span>,
+    <span class="key">"subtotal"</span>:           <span class="num">1000.00</span>,
+    <span class="key">"tax_amount"</span>:         <span class="num">150.00</span>,
+    <span class="key">"total_amount"</span>:        <span class="num">1150.00</span>,
+    <span class="key">"payment_method"</span>:     <span class="str">"Bank Transfer"</span>,
+    <span class="key">"line_items"</span>: [
+      { <span class="key">"description"</span>: <span class="str">"Web Design Services"</span>, <span class="key">"quantity"</span>: <span class="num">1</span>, <span class="key">"unit_price"</span>: <span class="num">1000.00</span>, <span class="key">"total"</span>: <span class="num">1000.00</span> }
+    ],
+    <span class="key">"confidence_score"</span>:   <span class="num">90</span>,
+    <span class="key">"raw_text"</span>:           <span class="str">"..."</span>
+  },
+  <span class="key">"meta"</span>: {
+    <span class="key">"filename"</span>:           <span class="str">"invoice.pdf"</span>,
+    <span class="key">"file_type"</span>:          <span class="str">"pdf"</span>,
+    <span class="key">"extraction_method"</span>:  <span class="str">"pdf_text"</span>,
+    <span class="key">"processing_time_ms"</span>: <span class="num">84</span>
+  }
+}</pre>
+</section>
+
+<!-- PRICING -->
+<section>
+  <h2>Pricing Plans</h2>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="plan">Free</div>
+      <div class="price">$0</div>
+      <div class="requests">50 requests / month</div>
+      <ul><li>PDF &amp; image support</li><li>Structured JSON</li><li>Community support</li></ul>
+    </div>
+    <div class="price-card featured">
+      <div class="plan">Starter</div>
+      <div class="price">$9 <span>/mo</span></div>
+      <div class="requests">1,000 requests / month</div>
+      <ul><li>Everything in Free</li><li>OCR support</li><li>Email support</li></ul>
+    </div>
+    <div class="price-card">
+      <div class="plan">Pro</div>
+      <div class="price">$29 <span>/mo</span></div>
+      <div class="requests">10,000 requests / month</div>
+      <ul><li>Everything in Starter</li><li>Priority processing</li><li>SLA guarantee</li></ul>
+    </div>
+    <div class="price-card">
+      <div class="plan">Business</div>
+      <div class="price">$79 <span>/mo</span></div>
+      <div class="requests">50,000 requests / month</div>
+      <ul><li>Everything in Pro</li><li>Dedicated support</li><li>Custom integration</li></ul>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:1.5rem">
+    <a href="https://rapidapi.com" target="_blank" class="btn">Subscribe on RapidAPI</a>
+  </div>
+</section>
+
+<!-- ARABIC SECTION -->
+<section>
+  <div class="arabic-section">
+    <h2>واجهة برمجية لاستخراج بيانات الفواتير</h2>
+    <p style="margin-top:0.75rem">
+      قم برفع فاتورتك بصيغة PDF أو صورة واحصل فوراً على بياناتها الهيكلية بصيغة JSON.
+      تدعم الواجهة الفواتير العربية والإنجليزية بما فيها حقول ضريبة القيمة المضافة،
+      رقم الفاتورة، تاريخ الاستحقاق، اسم المورد، والرقم الضريبي.
+    </p>
+    <ul style="margin-top:1rem;padding-right:1.5rem;color:var(--muted);font-size:0.92rem;">
+      <li>✓ استخراج رقم الفاتورة والتاريخ</li>
+      <li>✓ استخراج ضريبة القيمة المضافة والإجمالي</li>
+      <li>✓ دعم الرقم الضريبي (ZATCA)</li>
+      <li>✓ اكتشاف العملة (SAR، USD، EUR)</li>
+      <li>✓ نقاط الثقة للتحقق من جودة الاستخراج</li>
+    </ul>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>Invoice Extractor API &mdash; Built with FastAPI &bull; Available on RapidAPI</p>
+  <p style="margin-top:0.5rem">
+    <a href="/docs" style="color:#60a5fa;text-decoration:none">Swagger Docs</a> &bull;
+    <a href="/health" style="color:#60a5fa;text-decoration:none">Health Check</a>
+  </p>
+</footer>
+
+</body>
+</html>

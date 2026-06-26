@@ -1,0 +1,19 @@
+Société: Lumière Tech Solutions SARL
+Facture No: FA-2025-0091
+Date de facture: 12/03/2025
+Date d'échéance: 12/04/2025
+Numéro de TVA: FR12345678901
+Client: Dupont Consulting
+
+Description                       Qté   Prix unit.   Total
+Conception site web                  1    1,500.00   1,500.00
+Développement API                    2    1,000.00   2,000.00
+Support technique annuel             1      500.00     500.00
+
+Sous-total:                                     4,000.00
+TVA (20%):                                         800.00
+Total TTC:                                      4,800.00
+
+Devise: EUR
+Mode de paiement: Virement bancaire
+IBAN: FR14 2004 1010 0505 0001 3M02 606

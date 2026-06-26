@@ -1,0 +1,51 @@
+================================================================================
+                         ACME TECHNOLOGY SOLUTIONS LLC
+                           Commercial Invoice / Tax Invoice
+================================================================================
+
+Vendor Information:
+  Company Name  : Acme Technology Solutions LLC
+  Address       : King Fahd Road, Riyadh 12271, Saudi Arabia
+  VAT Number    : 300012345600003
+  Phone         : +966 11 234 5678
+  Email         : billing@acmetech.sa
+
+Bill To:
+  Company Name  : Al-Noor Trading Co.
+  Address       : Prince Sultan Street, Jeddah 21452, Saudi Arabia
+  Contact       : Mohammed Al-Rashid
+
+--------------------------------------------------------------------------------
+Invoice Details:
+  Invoice Number : INV-2024-00142
+  Invoice Date   : 15/01/2024
+  Due Date       : 14/02/2024
+  Payment Method : Bank Transfer
+
+--------------------------------------------------------------------------------
+Line Items:
+  No.   Description                        Qty    Unit Price      Total
+  ---   -----------                        ---    ----------      -----
+  1     Enterprise Software License         1      5,000.00       5,000.00
+  2     Implementation & Setup Services     3      1,500.00       4,500.00
+  3     Annual Support & Maintenance        1        500.00         500.00
+
+--------------------------------------------------------------------------------
+Summary:
+  Subtotal                                                      10,000.00
+  VAT (15%)                                                      1,500.00
+  Total Amount Due                                              11,500.00
+  Currency                                                             SAR
+
+--------------------------------------------------------------------------------
+Payment Instructions:
+  Bank Name      : Saudi National Bank
+  IBAN           : SA44 2000 0001 2345 6789 1234
+  Reference      : INV-2024-00142
+
+  Please include the invoice number as the payment reference.
+  Late payments may be subject to a 2% monthly charge.
+
+================================================================================
+Thank you for your business.
+================================================================================

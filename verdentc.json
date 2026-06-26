@@ -1,0 +1,7 @@
+{
+  "deploy": {
+    "type": "fullstack",
+    "backendDir": ".",
+    "backendPort": 8000
+  }
+}

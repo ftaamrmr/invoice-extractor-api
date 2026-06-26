@@ -1,0 +1,36 @@
+# ── Core framework ────────────────────────────────────────────────────────────
+# Version ranges are used instead of old hard pins so fresh installs work on
+# modern Python versions, including Python 3.14, while staying below breaking
+# major releases.
+fastapi>=0.111.0,<1.0.0
+uvicorn[standard]>=0.29.0,<1.0.0
+python-multipart>=0.0.9,<1.0.0
+
+# ── Data validation & config ──────────────────────────────────────────────────
+pydantic>=2.7.1,<3.0.0
+pydantic-settings>=2.2.1,<3.0.0
+python-dotenv>=1.0.1,<2.0.0
+
+# ── PDF extraction ────────────────────────────────────────────────────────────
+# PyMuPDF 1.26+ provides wheels for Python 3.14 on major platforms.
+PyMuPDF>=1.26.0,<2.0.0
+
+# ── Image handling ────────────────────────────────────────────────────────────
+# Pillow 12.x supports Python 3.14. Older Pillow 10.x does not.
+Pillow>=12.0.0,<13.0.0
+
+# ── OCR (pytesseract is the default engine) ───────────────────────────────────
+# Requires Tesseract binary on the host / in Docker (see Dockerfile).
+pytesseract>=0.3.10,<1.0.0
+
+# ── PDF creation (for sample test files) ──────────────────────────────────────
+reportlab>=5.0.0,<6.0.0
+
+# ── Manual HTTP testing ───────────────────────────────────────────────────────
+requests>=2.31.0,<3.0.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=8.2.1,<9.0.0
+pytest-asyncio>=0.23.7,<1.0.0
+anyio>=4.3.0,<5.0.0
+httpx>=0.27.0,<1.0.0

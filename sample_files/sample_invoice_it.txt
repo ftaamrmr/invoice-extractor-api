@@ -1,0 +1,19 @@
+Fornitore: Soluzioni Tech Italia S.r.l.
+Fattura N°: IT-2025-0456
+Data fattura: 18/03/2025
+Scadenza: 17/04/2025
+Partita IVA: IT98765432109
+Cliente: Rossi Consulting Srl
+
+Descrizione                       Q.tà   Prezzo     Totale
+Licenza software cloud              1    800.00     800.00
+Consulenza implementazione          4    250.00   1,000.00
+Assistenza tecnica annuale          1    600.00     600.00
+
+Imponibile totale:                            2,400.00
+IVA (22%):                                       528.00
+Importo totale:                               2,928.00
+
+Valuta: EUR
+Metodo di pagamento: Bonifico bancario
+IBAN: IT60X0542811101000000123456
