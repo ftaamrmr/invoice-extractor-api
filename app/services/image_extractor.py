@@ -8,7 +8,9 @@ Strategy:
   4. Raise a clear, actionable error if neither engine is available.
 """
 import io
+
 from PIL import Image
+
 from app.config import settings
 
 
@@ -82,6 +84,6 @@ def _ocr_image(image: "Image.Image") -> str:
 
 def _tesseract_lang_to_easyocr(lang: str) -> list:
     """Convert tesseract lang string 'eng+ara' → EasyOCR list ['en', 'ar']."""
-    mapping = {"eng": "en", "ara": "ar", "fra": "fr", "deu": "de", "spa": "es"}
+    mapping = {"eng": "en", "ara": "ar", "fra": "fr", "ita": "it", "hin": "hi", "deu": "de", "spa": "es"}
     parts = lang.lower().split("+")
     return [mapping.get(p, p) for p in parts if p]

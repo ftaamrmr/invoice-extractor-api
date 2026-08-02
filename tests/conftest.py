@@ -1,16 +1,15 @@
-"""
-Pytest configuration and shared fixtures.
+import pathlib
+import sys
 
-Sets deterministic test credentials at import time so tests are independent
-of whatever is in the local .env file. Individual tests override APP_ENV
-temporarily via the _ProductionMode context manager defined in test_extract.py.
-"""
-# ── Pin settings before any test module imports app code ─────────────────────
-# This block must run before test modules are collected.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
 from app.config import settings
 
-settings.API_KEY = "test-api-key-for-pytest-only"
-settings.RAPIDAPI_PROXY_SECRET = "test-rapidapi-secret-for-pytest-only"
-settings.APP_ENV = "development"   # tests that need production mode set it explicitly
-settings.ENABLE_OCR = False        # disable OCR so tests run without Tesseract
-settings.MAX_FILE_SIZE_MB = 10
+settings.APP_ENV = "test"
+settings.DIRECT_API_ACCESS_ENABLED = True
+settings.API_KEY = "test-api-key-1234567890"
+settings.REQUIRE_RAPIDAPI_SECRET = True
+settings.RAPIDAPI_PROXY_SECRET = "test-rapidapi-secret-1234567890"
+settings.ENABLE_OCR = False
+settings.INCLUDE_RAW_TEXT = False
+settings.RATE_LIMIT_ENABLED = False

@@ -1,0 +1,9 @@
+- [ ] `APP_ENV=production`
+- [ ] Strong `RAPIDAPI_PROXY_SECRET`
+- [ ] `DIRECT_API_ACCESS_ENABLED=false` unless explicitly required
+- [ ] If direct access enabled, strong `API_KEY`
+- [ ] `INCLUDE_RAW_TEXT=false` unless justified
+- [ ] `/health` and `/ready` both verified
+- [ ] Rate limiting enabled and headers confirmed
+- [ ] No secrets committed (`.env` excluded)
+- [ ] Docker image built and container health checked
