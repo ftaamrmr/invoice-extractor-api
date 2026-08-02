@@ -68,7 +68,7 @@ def _validate_amounts(subtotal: float | None, tax_amount: float | None, total_am
         expected_total = subtotal + tax_amount
         tolerance = max(2.0, expected_total * 0.1)
         if abs(total_amount - expected_total) > tolerance:
-            total_amount = expected_total if total_amount < expected_total else total_amount
+            total_amount = max(total_amount, expected_total)
 
     if total_amount is not None and tax_amount is not None and tax_amount > max(total_amount, 0.0):
         tax_amount = None
