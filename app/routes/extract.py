@@ -62,6 +62,10 @@ async def extract_invoice(
 ):
     validated = await validate_upload(file)
     result = await (extract_from_pdf(validated.content) if validated.file_type == "pdf" else extract_from_image(validated.content))
+    request.state.file_type = validated.file_type
+    request.state.file_size = validated.size_bytes
+    request.state.page_count = validated.page_count
+    request.state.extraction_method = result["extraction_method"]
 
     if result.get("error") and not result["parsed"].get("raw_text"):
         raise APIError(status.HTTP_422_UNPROCESSABLE_ENTITY, "EXTRACTION_FAILED", "Invoice extraction failed.")
@@ -86,6 +90,10 @@ async def extract_text_only(
 
     validated = await validate_upload(file)
     result = await (extract_from_pdf(validated.content) if validated.file_type == "pdf" else extract_from_image(validated.content))
+    request.state.file_type = validated.file_type
+    request.state.file_size = validated.size_bytes
+    request.state.page_count = validated.page_count
+    request.state.extraction_method = result["extraction_method"]
 
     if result.get("error") and not result["parsed"].get("raw_text"):
         raise APIError(status.HTTP_422_UNPROCESSABLE_ENTITY, "EXTRACTION_FAILED", "Invoice text extraction failed.")

@@ -22,3 +22,15 @@ def test_parser_fr_it_hi_samples():
         text = (BASE / name).read_text(encoding="utf-8")
         data = parse_invoice(text)
         assert isinstance(data["confidence_score"], float)
+
+
+def test_parser_corrects_unreasonable_totals():
+    data = parse_invoice(
+        "Invoice Number: INV-100\n"
+        "Subtotal: 100.00\n"
+        "Tax Amount: 20.00\n"
+        "Total Amount: 50.00\n"
+    )
+    assert data["subtotal"] == 100.0
+    assert data["tax_amount"] == 20.0
+    assert data["total_amount"] == 120.0

@@ -1,6 +1,9 @@
 
+import io
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+from PIL import Image
 
 from app.config import settings
 from app.main import app
@@ -19,6 +22,13 @@ def _minimal_pdf() -> bytes:
         b"xref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n"
         b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n200\n%%EOF"
     )
+
+
+def _tiny_png() -> bytes:
+    image = Image.new("RGB", (1, 1), color="white")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 @pytest.mark.anyio
@@ -71,3 +81,24 @@ async def test_rate_limit_headers_when_enabled(monkeypatch):
         assert "x-ratelimit-limit" in {k.lower() for k in r.headers.keys()} or r.status_code == 429
     finally:
         settings.RATE_LIMIT_ENABLED = False
+
+
+@pytest.mark.anyio
+async def test_ocr_timeout_returns_structured_504(monkeypatch):
+    settings.ENABLE_OCR = True
+
+    async def fake_timeout(_: bytes) -> str:
+        raise TimeoutError
+
+    monkeypatch.setattr("app.services.invoice_extractor.ocr_image_bytes", fake_timeout)
+
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/v1/invoices/extract", headers=_headers(), files={"file": ("scan.png", _tiny_png(), "image/png")})
+    finally:
+        settings.ENABLE_OCR = False
+
+    payload = r.json()
+    assert r.status_code == 504
+    assert payload["error"]["code"] == "PROCESSING_TIMEOUT"
+    assert "x-request-id" in {k.lower() for k in r.headers.keys()}
