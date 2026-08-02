@@ -1,43 +1,27 @@
-"""
-Invoice extraction routes.
+from __future__ import annotations
 
-POST /v1/invoices/extract        – full structured JSON response
-POST /v1/invoices/extract-text   – raw text only (useful for debugging)
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile, status
 
-Both endpoints:
-  - Require authentication via X-API-Key or X-RapidAPI-Proxy-Secret
-  - Accept multipart/form-data with a single "file" field
-  - Return X-Processing-Time response header (milliseconds)
-"""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, status
-from app.security import verify_api_key
-from app.services.file_validator import validate_upload
-from app.services.invoice_extractor import extract_from_pdf, extract_from_image
+from app.config import settings
+from app.errors import APIError
 from app.schemas import (
     ExtractResponse,
     InvoiceData,
     LineItem,
-    ResponseMeta,
-    RawTextResponse,
     RawTextData,
+    RawTextResponse,
+    ResponseMeta,
 )
+from app.security import verify_api_key
+from app.services.file_validator import validate_upload
+from app.services.invoice_extractor import extract_from_image, extract_from_pdf
 
 router = APIRouter(prefix="/v1/invoices", tags=["invoices"])
 
 
-def _file_type(filename: str) -> str:
-    """Return 'pdf' or 'image' based on file extension."""
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    return "pdf" if ext == "pdf" else "image"
-
-
 def _build_invoice_data(parsed: dict) -> InvoiceData:
-    """Convert the parser output dict into an InvoiceData Pydantic model."""
-    raw_items = parsed.get("line_items", [])
-    line_items = [
-        item if isinstance(item, LineItem) else LineItem(**item)
-        for item in raw_items
-    ]
+    line_items = [item if isinstance(item, LineItem) else LineItem(**item) for item in parsed.get("line_items", [])]
+    raw_text = parsed.get("raw_text") if settings.INCLUDE_RAW_TEXT else None
     return InvoiceData(
         vendor_name=parsed.get("vendor_name"),
         vendor_tax_number=parsed.get("vendor_tax_number"),
@@ -51,111 +35,64 @@ def _build_invoice_data(parsed: dict) -> InvoiceData:
         payment_method=parsed.get("payment_method"),
         line_items=line_items,
         confidence_score=parsed.get("confidence_score", 0.0),
-        raw_text=parsed.get("raw_text", ""),
+        field_confidence=parsed.get("field_confidence"),
+        raw_text=raw_text,
     )
 
 
-@router.post(
-    "/extract",
-    response_model=ExtractResponse,
-    summary="Extract structured invoice data from PDF or image",
-    description=(
-        "Upload a PDF or image invoice and receive structured JSON with "
-        "vendor name, invoice number, dates, amounts, line items, and more. "
-        "Requires X-API-Key or X-RapidAPI-Proxy-Secret header."
-    ),
-    responses={
-        401: {"description": "Missing or invalid API key"},
-        413: {"description": "File exceeds size limit"},
-        422: {"description": "Unsupported file type, empty file, or extraction error"},
-    },
-)
+def _build_meta(request: Request, validated, result: dict) -> ResponseMeta:
+    return ResponseMeta(
+        request_id=getattr(request.state, "request_id", "unknown"),
+        version=settings.APP_VERSION,
+        filename=validated.sanitized_filename,
+        file_type=validated.file_type,
+        file_size=validated.size_bytes,
+        page_count=validated.page_count,
+        extraction_method=result["extraction_method"],
+        processing_time_ms=result["processing_time_ms"],
+    )
+
+
+@router.post("/extract", response_model=ExtractResponse, response_model_exclude_none=True)
 async def extract_invoice(
+    request: Request,
     response: Response,
     file: UploadFile = File(..., description="PDF, PNG, JPG, or JPEG invoice file"),
     _: None = Depends(verify_api_key),
 ):
-    content = await validate_upload(file)
-    filename = file.filename or "unknown"
-    ftype = _file_type(filename)
+    validated = await validate_upload(file)
+    result = await (extract_from_pdf(validated.content) if validated.file_type == "pdf" else extract_from_image(validated.content))
 
-    result = extract_from_pdf(content) if ftype == "pdf" else extract_from_image(content)
-
-    # Surface the processing time as a response header for observability
-    response.headers["X-Processing-Time"] = str(result["processing_time_ms"])
-
-    # If extraction completely failed (e.g. OCR unavailable for image), raise 422
     if result.get("error") and not result["parsed"].get("raw_text"):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "success": False,
-                "error": {
-                    "code": "EXTRACTION_FAILED",
-                    "message": result["error"],
-                },
-            },
-        )
+        raise APIError(status.HTTP_422_UNPROCESSABLE_ENTITY, "EXTRACTION_FAILED", "Invoice extraction failed.")
 
-    # Partial success: extraction worked but OCR had issues — return what we have
+    response.headers["X-Processing-Time"] = str(result["processing_time_ms"])
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Request-ID"] = getattr(request.state, "request_id", "unknown")
+
     invoice_data = _build_invoice_data(result["parsed"])
-    meta = ResponseMeta(
-        filename=filename,
-        file_type=ftype,
-        extraction_method=result["extraction_method"],
-        processing_time_ms=result["processing_time_ms"],
-    )
-    return ExtractResponse(success=True, data=invoice_data, meta=meta)
+    return ExtractResponse(success=True, data=invoice_data, meta=_build_meta(request, validated, result))
 
 
-@router.post(
-    "/extract-text",
-    response_model=RawTextResponse,
-    summary="Extract raw text from PDF or image",
-    description=(
-        "Returns only the raw extracted text. "
-        "Useful for debugging, validating OCR quality, and RapidAPI testing. "
-        "Requires X-API-Key or X-RapidAPI-Proxy-Secret header."
-    ),
-    responses={
-        401: {"description": "Missing or invalid API key"},
-        413: {"description": "File exceeds size limit"},
-        422: {"description": "Unsupported file type, empty file, or extraction error"},
-    },
-)
+@router.post("/extract-text", response_model=RawTextResponse, response_model_exclude_none=True)
 async def extract_text_only(
+    request: Request,
     response: Response,
     file: UploadFile = File(...),
     _: None = Depends(verify_api_key),
 ):
-    content = await validate_upload(file)
-    filename = file.filename or "unknown"
-    ftype = _file_type(filename)
+    if not settings.INCLUDE_RAW_TEXT:
+        raise APIError(status.HTTP_403_FORBIDDEN, "RAW_TEXT_DISABLED", "Raw text extraction is disabled.")
 
-    result = extract_from_pdf(content) if ftype == "pdf" else extract_from_image(content)
-
-    response.headers["X-Processing-Time"] = str(result["processing_time_ms"])
+    validated = await validate_upload(file)
+    result = await (extract_from_pdf(validated.content) if validated.file_type == "pdf" else extract_from_image(validated.content))
 
     if result.get("error") and not result["parsed"].get("raw_text"):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "success": False,
-                "error": {
-                    "code": "EXTRACTION_FAILED",
-                    "message": result["error"],
-                },
-            },
-        )
+        raise APIError(status.HTTP_422_UNPROCESSABLE_ENTITY, "EXTRACTION_FAILED", "Invoice text extraction failed.")
 
-    meta = ResponseMeta(
-        filename=filename,
-        file_type=ftype,
-        extraction_method=result["extraction_method"],
-        processing_time_ms=result["processing_time_ms"],
-    )
-    return RawTextResponse(
-        success=True,
-        data=RawTextData(raw_text=result["parsed"].get("raw_text", "")),
-        meta=meta,
-    )
+    response.headers["X-Processing-Time"] = str(result["processing_time_ms"])
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Request-ID"] = getattr(request.state, "request_id", "unknown")
+
+    raw_text = result["parsed"].get("raw_text", "")[: settings.MAX_EXTRACTED_TEXT_LENGTH]
+    return RawTextResponse(success=True, data=RawTextData(raw_text=raw_text), meta=_build_meta(request, validated, result))

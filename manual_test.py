@@ -29,9 +29,9 @@ Examples:
         python manual_test.py
 """
 
+import json
 import os
 import sys
-import json
 import time
 
 # ── Try to load .env so you can run without exporting env vars manually ───────

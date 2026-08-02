@@ -46,13 +46,18 @@ ARABIC_FONT_PATH = os.path.join(FONTS_DIR, "Amiri-Regular.ttf")
 # ── Check reportlab ───────────────────────────────────────────────────────────
 
 try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_LEFT, TA_RIGHT
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, HRFlowable, Preformatted
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import (
+        HRFlowable,
+        Paragraph,
+        Preformatted,
+        SimpleDocTemplate,
+    )
 except ImportError:
     print("\n[ERROR] reportlab is not installed.")
     print("Run:  pip install reportlab\n")
@@ -143,13 +148,13 @@ def create_arabic_pdf(txt_path: str, pdf_path: str, font_available: bool) -> Non
     Requires the Amiri font in scripts/fonts/Amiri-Regular.ttf.
     """
     if not font_available:
-        print(f"\n  [SKIP] Arabic PDF not created — Amiri font not found.")
-        print(f"  To enable Arabic PDF generation:")
-        print(f"    1. Download Amiri-Regular.ttf from https://fonts.google.com/specimen/Amiri")
+        print("\n  [SKIP] Arabic PDF not created — Amiri font not found.")
+        print("  To enable Arabic PDF generation:")
+        print("    1. Download Amiri-Regular.ttf from https://fonts.google.com/specimen/Amiri")
         print(f"    2. Place it at: {ARABIC_FONT_PATH}")
-        print(f"    3. Run: pip install arabic-reshaper python-bidi")
-        print(f"    4. Re-run this script.")
-        print(f"\n  You can still test Arabic parsing with the .txt file directly.")
+        print("    3. Run: pip install arabic-reshaper python-bidi")
+        print("    4. Re-run this script.")
+        print("\n  You can still test Arabic parsing with the .txt file directly.")
         return
 
     print(f"  Creating: {os.path.basename(pdf_path)}")

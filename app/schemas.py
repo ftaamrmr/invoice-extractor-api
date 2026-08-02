@@ -1,11 +1,7 @@
-"""
-Pydantic schemas for request validation and response models.
-"""
-from typing import List, Optional
-from pydantic import BaseModel
+from __future__ import annotations
 
+from pydantic import BaseModel, Field
 
-# ── Line item inside an invoice ──────────────────────────────────────────────
 
 class LineItem(BaseModel):
     description: str = ""
@@ -14,42 +10,39 @@ class LineItem(BaseModel):
     total: float = 0.0
 
 
-# ── Core invoice data ─────────────────────────────────────────────────────────
-
 class InvoiceData(BaseModel):
-    vendor_name: Optional[str] = None
-    vendor_tax_number: Optional[str] = None
-    invoice_number: Optional[str] = None
-    invoice_date: Optional[str] = None
-    due_date: Optional[str] = None
-    currency: Optional[str] = None
-    subtotal: Optional[float] = None
-    tax_amount: Optional[float] = None
-    total_amount: Optional[float] = None
-    payment_method: Optional[str] = None
-    line_items: List[LineItem] = []
+    vendor_name: str | None = None
+    vendor_tax_number: str | None = None
+    invoice_number: str | None = None
+    invoice_date: str | None = None
+    due_date: str | None = None
+    currency: str | None = None
+    subtotal: float | None = None
+    tax_amount: float | None = None
+    total_amount: float | None = None
+    payment_method: str | None = None
+    line_items: list[LineItem] = Field(default_factory=list)
     confidence_score: float = 0.0
-    raw_text: str = ""
+    field_confidence: dict[str, float] | None = None
+    raw_text: str | None = None
 
-
-# ── Metadata attached to every response ──────────────────────────────────────
 
 class ResponseMeta(BaseModel):
+    request_id: str
+    version: str
     filename: str
-    file_type: str          # "pdf" | "image"
-    extraction_method: str  # "pdf_text" | "ocr" | "fallback"
+    file_type: str
+    file_size: int
+    page_count: int | None = None
+    extraction_method: str
     processing_time_ms: int
 
-
-# ── Success response ──────────────────────────────────────────────────────────
 
 class ExtractResponse(BaseModel):
     success: bool = True
     data: InvoiceData
     meta: ResponseMeta
 
-
-# ── Error detail ──────────────────────────────────────────────────────────────
 
 class ErrorDetail(BaseModel):
     code: str
@@ -59,9 +52,8 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     success: bool = False
     error: ErrorDetail
+    request_id: str
 
-
-# ── Raw-text-only response ────────────────────────────────────────────────────
 
 class RawTextData(BaseModel):
     raw_text: str
