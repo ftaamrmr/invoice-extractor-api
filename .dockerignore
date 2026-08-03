@@ -12,6 +12,9 @@ htmlcov/
 .venv/
 venv/
 env/
+tests/
+sample_files/
+manual_test.py
 *.log
 *.zip
 *.sha256

@@ -77,7 +77,7 @@ def _validate_image(content: bytes) -> tuple[str, int]:
         raise APIError(413, "IMAGE_TOO_LARGE", "Image dimensions exceed allowed limits.")
     except APIError:
         raise
-    except (UnidentifiedImageError, OSError, ValueError):
+    except (SyntaxError, UnidentifiedImageError, OSError, ValueError):
         raise APIError(422, "INVALID_IMAGE", "The image is invalid.")
 
 

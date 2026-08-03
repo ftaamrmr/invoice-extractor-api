@@ -20,7 +20,7 @@ class JsonFormatter(logging.Formatter):
             "method",
             "path",
             "status",
-            "processing_time",
+            "processing_time_ms",
             "file_type",
             "file_size",
             "page_count",

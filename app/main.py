@@ -33,6 +33,24 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.EXPOSE_DOCS else None,
 )
 
+
+def _log_request(request: Request, status_code: int, duration_ms: int) -> None:
+    logger.info(
+        "request_complete",
+        extra={
+            "request_id": getattr(request.state, "request_id", "unknown"),
+            "method": request.method,
+            "path": request.url.path,
+            "status": status_code,
+            "processing_time_ms": duration_ms,
+            "file_type": getattr(request.state, "file_type", None),
+            "file_size": getattr(request.state, "file_size", None),
+            "page_count": getattr(request.state, "page_count", None),
+            "extraction_method": getattr(request.state, "extraction_method", None),
+            "error_code": getattr(request.state, "error_code", None),
+        },
+    )
+
 cors_origins = settings.cors_allowed_origins_list
 app.add_middleware(
     CORSMiddleware,
@@ -59,7 +77,10 @@ async def request_context_middleware(request: Request, call_next):
     if settings.RATE_LIMIT_ENABLED and request.url.path.startswith("/v1/"):
         rate_result = rate_limiter.check(resolve_identity(request))
         if not rate_result.allowed:
+            request.state.error_code = "RATE_LIMIT_EXCEEDED"
+            duration_ms = int((time.monotonic() - started) * 1000)
             payload = error_response_payload("RATE_LIMIT_EXCEEDED", "Too many requests.", request_id)
+            _log_request(request, 429, duration_ms)
             return JSONResponse(
                 status_code=429,
                 content=payload,
@@ -74,7 +95,10 @@ async def request_context_middleware(request: Request, call_next):
     try:
         response = await asyncio.wait_for(call_next(request), timeout=settings.REQUEST_TIMEOUT_SECONDS)
     except TimeoutError:
+        request.state.error_code = "PROCESSING_TIMEOUT"
+        duration_ms = int((time.monotonic() - started) * 1000)
         payload = error_response_payload("PROCESSING_TIMEOUT", "The request timed out.", request_id)
+        _log_request(request, 504, duration_ms)
         return JSONResponse(status_code=504, content=payload, headers={"X-Request-ID": request_id})
 
     duration_ms = int((time.monotonic() - started) * 1000)
@@ -92,21 +116,13 @@ async def request_context_middleware(request: Request, call_next):
         response.headers["X-RateLimit-Limit"] = str(rate_result.limit)
         response.headers["X-RateLimit-Remaining"] = str(rate_result.remaining)
 
-    logger.info(
-        "request_complete",
-        extra={
-            "request_id": request_id,
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "processing_time": duration_ms,
-        },
-    )
+    _log_request(request, response.status_code, duration_ms)
     return response
 
 
 @app.exception_handler(APIError)
 async def api_error_handler(request: Request, exc: APIError):
+    request.state.error_code = exc.code
     payload = error_response_payload(exc.code, exc.message, getattr(request.state, "request_id", "unknown"))
     headers = {"X-Request-ID": getattr(request.state, "request_id", "unknown")}
     if exc.headers:
@@ -129,6 +145,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         503: "SERVICE_UNAVAILABLE",
     }
     code = code_map.get(exc.status_code, "HTTP_ERROR")
+    request.state.error_code = code
     message = "Request failed."
     payload = error_response_payload(code, message, getattr(request.state, "request_id", "unknown"))
     return JSONResponse(status_code=exc.status_code, content=payload, headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")})
@@ -136,12 +153,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    request.state.error_code = "VALIDATION_ERROR"
     payload = error_response_payload("VALIDATION_ERROR", "Request validation failed.", getattr(request.state, "request_id", "unknown"))
     return JSONResponse(status_code=422, content=payload, headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")})
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    request.state.error_code = "INTERNAL_SERVER_ERROR"
     logger.error(
         "unhandled_exception",
         extra={
@@ -184,6 +203,12 @@ async def health():
 @app.get("/ready", tags=["system"])
 async def ready():
     checks: dict[str, str] = {}
+
+    try:
+        settings.__class__(**settings.model_dump())
+        checks["config"] = "ok"
+    except Exception:
+        checks["config"] = "failed"
 
     try:
         import fitz  # noqa: F401

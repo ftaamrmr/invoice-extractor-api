@@ -50,6 +50,32 @@ def _to_float(value: str | None) -> float | None:
         return None
 
 
+def _validate_amounts(subtotal: float | None, tax_amount: float | None, total_amount: float | None) -> tuple[float | None, float | None, float | None]:
+    if subtotal is not None and subtotal < 0:
+        subtotal = None
+    if tax_amount is not None and tax_amount < 0:
+        tax_amount = None
+    if total_amount is not None and total_amount < 0:
+        total_amount = None
+
+    if subtotal is not None and total_amount is not None and total_amount + 0.01 < subtotal:
+        total_amount = subtotal + tax_amount if tax_amount is not None else None
+
+    if tax_amount is not None and subtotal is not None and tax_amount > max(subtotal, 0.0):
+        tax_amount = None
+
+    if subtotal is not None and tax_amount is not None and total_amount is not None:
+        expected_total = subtotal + tax_amount
+        tolerance = max(2.0, expected_total * 0.1)
+        if abs(total_amount - expected_total) > tolerance:
+            total_amount = max(total_amount, expected_total)
+
+    if total_amount is not None and tax_amount is not None and tax_amount > max(total_amount, 0.0):
+        tax_amount = None
+
+    return subtotal, tax_amount, total_amount
+
+
 INVOICE_NUMBER_PATTERNS = [
     r"(?:invoice\s*(?:no|number|#|num)[:\s#]+)([A-Z0-9\-/]+)",
     r"(?:facture\s*(?:n°|no|numéro|numero)[:\s#]+)([A-Z0-9\-/]+)",
@@ -185,6 +211,8 @@ def parse_invoice(raw_text: str) -> dict:
 
     if subtotal is None and tax_amount is not None and total_amount is not None and total_amount > tax_amount:
         subtotal = total_amount - tax_amount
+
+    subtotal, tax_amount, total_amount = _validate_amounts(subtotal, tax_amount, total_amount)
 
     currency: str | None = None
     for pattern in CURRENCY_PATTERNS:

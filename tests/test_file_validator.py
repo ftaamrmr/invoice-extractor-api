@@ -35,3 +35,11 @@ async def test_file_too_large_rejected():
         assert exc.value.code == "FILE_TOO_LARGE"
     finally:
         settings.MAX_FILE_SIZE_MB = old
+
+
+@pytest.mark.anyio
+async def test_corrupted_png_rejected():
+    upload = UploadFile(filename="broken.png", file=io.BytesIO(b"\x89PNG\r\n\x1a\nbroken"))
+    with pytest.raises(APIError) as exc:
+        await validate_upload(upload)
+    assert exc.value.code == "INVALID_IMAGE"

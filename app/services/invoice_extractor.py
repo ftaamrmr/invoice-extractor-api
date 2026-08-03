@@ -4,6 +4,7 @@ import asyncio
 import time
 
 from app.config import settings
+from app.errors import APIError
 from app.services.ocr_service import ocr_image_bytes, ocr_pil_images
 from app.services.parser import parse_invoice
 from app.services.pdf_extractor import extract_text_from_pdf, pdf_pages_as_images
@@ -53,9 +54,8 @@ async def extract_from_pdf(pdf_bytes: bytes) -> dict:
                 if not text.strip():
                     extraction_method = "fallback"
                     error_msg = "OCR produced no text from PDF pages."
-            except TimeoutError:
-                extraction_method = "fallback"
-                error_msg = "OCR timed out."
+            except TimeoutError as exc:
+                raise APIError(504, "PROCESSING_TIMEOUT", "OCR processing timed out.") from exc
             except Exception:
                 extraction_method = "fallback"
                 error_msg = "OCR processing failed."
@@ -87,9 +87,8 @@ async def extract_from_image(image_bytes: bytes) -> dict:
 
     try:
         text = await ocr_image_bytes(image_bytes)
-    except TimeoutError:
-        extraction_method = "fallback"
-        error_msg = "OCR timed out."
+    except TimeoutError as exc:
+        raise APIError(504, "PROCESSING_TIMEOUT", "OCR processing timed out.") from exc
     except Exception:
         extraction_method = "fallback"
         error_msg = "OCR processing failed."
