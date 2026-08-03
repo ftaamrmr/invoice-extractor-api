@@ -12,6 +12,10 @@ class APIError(Exception):
     headers: dict[str, str] | None = None
 
 
+class OCRTimeoutError(Exception):
+    """Raised when an OCR operation exceeds the configured timeout."""
+
+
 def error_response_payload(code: str, message: str, request_id: str) -> dict[str, Any]:
     return {
         "success": False,

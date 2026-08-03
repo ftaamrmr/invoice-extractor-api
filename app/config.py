@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     OCR_LANGUAGES: str = "eng+ara+fra+ita+hin"
     OCR_TIMEOUT_SECONDS: int = 25
     REQUEST_TIMEOUT_SECONDS: int = 35
-    MAX_CONCURRENT_OCR_JOBS: int = 2
+    MAX_CONCURRENT_OCR_JOBS: int = 1
 
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_REQUESTS: int = 30
@@ -121,6 +121,13 @@ class Settings(BaseSettings):
     def validate_security_config(self) -> Settings:
         if self.APP_ENV != "production":
             return self
+
+        # Reject if no authentication method is active at all
+        if not self.REQUIRE_RAPIDAPI_SECRET and not self.DIRECT_API_ACCESS_ENABLED:
+            raise ValueError(
+                "Invalid production config: at least one auth method must be enabled. "
+                "Set REQUIRE_RAPIDAPI_SECRET=true or DIRECT_API_ACCESS_ENABLED=true."
+            )
 
         secret = self.RAPIDAPI_PROXY_SECRET.strip()
         if self.REQUIRE_RAPIDAPI_SECRET:
