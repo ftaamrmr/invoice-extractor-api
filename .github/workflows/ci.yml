@@ -2,13 +2,15 @@ name: ci
 
 on:
   push:
+    branches: ['**']
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  lint:
+    name: Lint & Compile
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +25,67 @@ jobs:
         run: python -m compileall app
       - name: Ruff
         run: ruff check .
-      - name: Pytest
-        run: pytest -q
-      - name: Docker build
+
+  test:
+    name: Pytest (unit + integration)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system deps (Tesseract + Arabic)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            tesseract-ocr \
+            tesseract-ocr-ara \
+            tesseract-ocr-fra \
+            tesseract-ocr-hin
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Run pytest (unit + integration)
+        run: pytest -v --tb=short -p no:warnings
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
         run: docker build -t invoice-extractor-api:ci .
+
+  artifact:
+    name: Build & Upload Artifact
+    needs: [lint, test, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Create production ZIP
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="invoice-extractor-api-v${VERSION}-production-ready.zip"
+          zip -r "${ZIP_NAME}" . \
+            -x '.git/*' \
+            -x '.env' \
+            -x '**/__pycache__/*' \
+            -x '**/*.pyc' \
+            -x '.venv/*' \
+            -x 'venv/*' \
+            -x '*.zip'
+          sha256sum "${ZIP_NAME}" > "${ZIP_NAME}.sha256"
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+        id: zip
+      - name: Upload artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: invoice-extractor-api-v${{ steps.version.outputs.version }}-production-ready
+          path: |
+            invoice-extractor-api-v*-production-ready.zip
+            invoice-extractor-api-v*-production-ready.zip.sha256
+          retention-days: 30
