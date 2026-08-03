@@ -12,6 +12,7 @@ import io
 from PIL import Image
 
 from app.config import settings
+from app.errors import OCRTimeoutError
 
 
 def extract_text_from_image_bytes(image_bytes: bytes) -> str:
@@ -36,6 +37,7 @@ def _ocr_image(image: "Image.Image") -> str:
     Uses OCR_LANGUAGES from settings (default: eng+ara).
     """
     lang = settings.OCR_LANGUAGES  # e.g. "eng+ara" or "eng"
+    timeout = settings.OCR_TIMEOUT_SECONDS
 
     # ── pytesseract ───────────────────────────────────────────────────────────
     try:
@@ -43,16 +45,22 @@ def _ocr_image(image: "Image.Image") -> str:
 
         try:
             # Try with the configured language set (may include Arabic)
-            text = pytesseract.image_to_string(image, lang=lang)
-        except pytesseract.TesseractError:
+            text = pytesseract.image_to_string(image, lang=lang, timeout=timeout)
+        except pytesseract.TesseractError as exc:
+            exc_msg = str(exc).lower()
+            if "timeout" in exc_msg or "timed out" in exc_msg:
+                raise OCRTimeoutError("OCR timed out") from exc
             # Language pack not installed → fall back to English only
             try:
-                text = pytesseract.image_to_string(image, lang="eng")
-            except pytesseract.TesseractError as exc:
+                text = pytesseract.image_to_string(image, lang="eng", timeout=timeout)
+            except pytesseract.TesseractError as exc2:
+                exc2_msg = str(exc2).lower()
+                if "timeout" in exc2_msg or "timed out" in exc2_msg:
+                    raise OCRTimeoutError("OCR timed out") from exc2
                 raise RuntimeError(
-                    f"Tesseract OCR failed: {exc}. "
+                    f"Tesseract OCR failed: {exc2}. "
                     "Make sure the Tesseract binary is installed and accessible."
-                ) from exc
+                ) from exc2
         return text.strip()
 
     except ImportError:

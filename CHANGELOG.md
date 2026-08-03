@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.1] - 2026-08-03
+
+### Security
+- **OCR timeout hardening**: `pytesseract.image_to_string` now receives `timeout=OCR_TIMEOUT_SECONDS` directly, so the Tesseract subprocess itself is killed on timeout. Both the primary language call and the `eng` fallback enforce the timeout. A `TesseractError` containing "timed out" is unified to `OCRTimeoutError`, which propagates as `TimeoutError` and is safely surfaced as HTTP 504 `PROCESSING_TIMEOUT` without leaking system details.
+- **Rate-limit identity hardening**: `X-RapidAPI-User` and `X-RapidAPI-Subscription` headers are now only trusted for rate-limit identity when `X-RapidAPI-Proxy-Secret` is verified with `secrets.compare_digest`. Without a valid proxy secret the identity falls back to IP, preventing header spoofing from bypassing per-user rate limits.
+- **Production auth config guard**: `APP_ENV=production` is now rejected at startup when both `REQUIRE_RAPIDAPI_SECRET=false` and `DIRECT_API_ACCESS_ENABLED=false`, ensuring the API never starts in production without at least one authentication method active.
+
+### Changed
+- `MAX_CONCURRENT_OCR_JOBS` default changed from `2` to `1` (recommended for 1 vCPU servers).
+- `.env.example` updated to reflect `MAX_CONCURRENT_OCR_JOBS=1` with a comment.
+
 ## [1.1.0] - 2026-08-02
 
 ### Added

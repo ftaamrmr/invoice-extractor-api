@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import secrets
 import threading
 import time
 from dataclasses import dataclass
@@ -94,10 +95,23 @@ def _safe_client_ip(request: Request) -> str:
     return fallback
 
 
+def _rapidapi_proxy_secret_valid(request: Request) -> bool:
+    """Return True only when the request carries a correct RapidAPI proxy secret."""
+    configured_secret = settings.RAPIDAPI_PROXY_SECRET.strip()
+    if not configured_secret:
+        return False
+    incoming_secret = request.headers.get("x-rapidapi-proxy-secret", "")
+    if not incoming_secret:
+        return False
+    return secrets.compare_digest(incoming_secret, configured_secret)
+
+
 def resolve_identity(request: Request) -> str:
-    rapidapi_identity = request.headers.get("x-rapidapi-user") or request.headers.get("x-rapidapi-subscription")
-    if rapidapi_identity:
-        return f"rapidapi:{rapidapi_identity[:128]}"
+    # Only trust RapidAPI identity headers when the proxy secret is verified.
+    if _rapidapi_proxy_secret_valid(request):
+        rapidapi_identity = request.headers.get("x-rapidapi-user") or request.headers.get("x-rapidapi-subscription")
+        if rapidapi_identity:
+            return f"rapidapi:{rapidapi_identity[:128]}"
     return f"ip:{_safe_client_ip(request)}"
 
 

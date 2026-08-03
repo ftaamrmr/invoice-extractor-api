@@ -5,6 +5,7 @@ import subprocess
 from collections.abc import Iterable
 
 from app.config import settings
+from app.errors import OCRTimeoutError
 from app.services.image_extractor import (
     extract_text_from_image_bytes,
     extract_text_from_pil_image,
@@ -26,20 +27,26 @@ async def ocr_image_bytes(image_bytes: bytes) -> str:
     if not settings.ENABLE_OCR:
         raise RuntimeError("OCR is disabled.")
     async with _ocr_semaphore:
-        return await asyncio.wait_for(
-            asyncio.to_thread(extract_text_from_image_bytes, image_bytes),
-            timeout=settings.OCR_TIMEOUT_SECONDS,
-        )
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(extract_text_from_image_bytes, image_bytes),
+                timeout=settings.OCR_TIMEOUT_SECONDS,
+            )
+        except OCRTimeoutError as exc:
+            raise TimeoutError("OCR timed out") from exc
 
 
 async def ocr_pil_images(images: list) -> str:
     if not settings.ENABLE_OCR:
         raise RuntimeError("OCR is disabled.")
     async with _ocr_semaphore:
-        return await asyncio.wait_for(
-            asyncio.to_thread(_ocr_many, images),
-            timeout=settings.OCR_TIMEOUT_SECONDS,
-        )
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(_ocr_many, images),
+                timeout=settings.OCR_TIMEOUT_SECONDS,
+            )
+        except OCRTimeoutError as exc:
+            raise TimeoutError("OCR timed out") from exc
 
 
 def check_tesseract_ready(required_languages: str) -> tuple[bool, str]:
